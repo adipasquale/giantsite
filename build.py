@@ -1,47 +1,61 @@
 import json
 import urllib.request
 import os
-
-BUILD_PATH = "/tmp/huge_static_website"
-
-if not os.path.exists(BUILD_PATH):
-    os.makedirs(BUILD_PATH)
-
-def path_for(item):
-    return os.path.join(BUILD_PATH, "item_%s.html" % item["id"])
+import sys
 
 
-api_url = "https://jsonplaceholder.typicode.com/photos"
-request = urllib.request.urlopen(api_url)
-items = json.loads(request.read())
-print("fetched %s items from API" % len(items))
+class Builder(object):
 
-for item in items:
-    with open(path_for(item), "w") as f:
-        f.write("""
-            <html>
-            <head><title>Item %s</title></head>
-            <body>
-            <h1>%s</h1>
-            <img src="%s" />
-            </body>
-        """ % (item["title"], item["title"], item["url"]))
+    def __init__(self, destination_dir="/tmp/www"):
+        self.destination_dir = destination_dir
 
-index_path = os.path.join(BUILD_PATH, "index.html")
-with open(index_path, "w") as f:
-    links_html = "".join([
-        "<li><a href='%s'>Item %s</a></li>" % (path_for(item), item["id"])
-        for item in items
-    ])
-    f.write("""
-        <html>
-        <head><title>Index</title></head>
-        <body>
-        <h1>Index</h1>
-        <ul>
-            %s
-        </ul>
-        </body>
-    """ % (links_html))
+    def build(self):
+        if not os.path.exists(self.destination_dir):
+            os.makedirs(self.destination_dir)
+        items = self.fetch_items()
+        self.build_item_pages(items)
+        self.build_index_page(items)
+        print("done rebuilding inside %s !" % self.destination_dir)
 
-print("done rebuilding ! you can open %s" % (index_path))
+    def item_page_path(self, item):
+        return os.path.join(self.destination_dir, "item_%s.html" % item["id"])
+
+    def fetch_items(self):
+        api_url = "https://jsonplaceholder.typicode.com/photos"
+        request = urllib.request.urlopen(api_url)
+        items = json.loads(request.read())
+        print("fetched %s items from API" % len(items))
+        return items
+
+    def build_item_pages(self, items):
+        for item in items:
+            with open(self.item_page_path(item), "w") as f:
+                f.write("""
+                    <html>
+                    <head><title>Item %s</title></head>
+                    <body>
+                    <h1>%s</h1>
+                    <img src="%s" />
+                    </body>
+                """ % (item["title"], item["title"], item["url"]))
+
+    def build_index_page(self, items):
+        index_path = os.path.join(self.destination_dir, "index.html")
+        with open(index_path, "w") as f:
+            links_html = "".join([
+                "<li><a href='%s'>Item %s</a></li>" % (self.item_page_path(item), item["id"])
+                for item in items
+            ])
+            f.write("""
+                <html>
+                <head><title>Index</title></head>
+                <body>
+                <h1>Index TEST 2</h1>
+                <ul>
+                    %s
+                </ul>
+                </body>
+            """ % (links_html))
+
+if __name__ == "__main__":
+    Builder(sys.argv[1]).build()
