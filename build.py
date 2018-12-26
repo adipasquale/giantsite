@@ -47,9 +47,6 @@ class Builder(object):
         self.build_index_page(items)
         print("done rebuilding inside %s !" % self.destination_dir)
 
-    def item_page_path(self, item):
-        return os.path.join(self.destination_dir, "item_%s.html" % item["id"])
-
     def fetch_items(self):
         api_url = "https://jsonplaceholder.typicode.com/photos"
         request = urllib.request.urlopen(api_url)
@@ -59,7 +56,8 @@ class Builder(object):
 
     def build_item_pages(self, items):
         for item in items:
-            with open(self.item_page_path(item), "w") as f:
+            path = os.path.join(self.destination_dir, "item_%s.html" % item["id"])
+            with open(path, "w") as f:
                 f.write(ITEM_PAGE_TEMPLATE % (item["title"], item["url"], item["title"]))
 
     def build_index_page(self, items):
@@ -67,10 +65,11 @@ class Builder(object):
         with open(index_path, "w") as f:
             links_html = "".join([
                 "<li class='ph3 pv2 bb b--light-silver'><a href='%s'>Page %s</a></li>" %
-                (self.item_page_path(item), item["id"])
+                ("/item_%s.html" % item["id"], item["id"])
                 for item in items
             ])
             f.write(INDEX_PAGE_TEMPLATE % (links_html))
 
 if __name__ == "__main__":
-    Builder(sys.argv[1]).build()
+    dest_dir = sys.argv[1] if len(sys.argv) > 1 else "/tmp/www"
+    Builder(dest_dir).build()
